@@ -7,7 +7,11 @@ from keras.utils import to_categorical
 import numpy as np
 import pandas as pd
 
+# Create datasets with labels for normal traffic, DDoS attacks, and port scans
+# You can use the generateSyntheticNetwork.py script to generate synthetic network traffic data
 # Load and preprocess your network traffic data
+# Make sure that each dataset comes from a specific IP, with the filename as the label (e.g., 'normal', 'ddos', 'port_scan')
+
 data = pd.read_csv('network_traffic_data.csv')
 
 # Feature columns (you'll need to adjust these based on your data)
@@ -53,7 +57,7 @@ model = Sequential([
 model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
 # Train the model
-model.fit(train_dataset, epochs=10, validation_data=test_dataset)
+model.fit(train_dataset, epochs=100, validation_data=test_dataset)
 
 # Evaluate the model on the test set
 loss, accuracy = model.evaluate(test_dataset)
@@ -63,4 +67,4 @@ print(f'Test accuracy: {accuracy * 100:.2f}%')
 predictions = model.predict(X_test)
 predicted_classes = np.argmax(predictions, axis=1)
 predicted_labels = label_encoder.inverse_transform(predicted_classes)
-print(predicted_labels)
+# print(predicted_labels)
