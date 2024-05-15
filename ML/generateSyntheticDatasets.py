@@ -32,7 +32,6 @@ def generate_port_scan_traffic(num_samples):
 # Set base directory to your ML folder
 base_dir = 'ML'
 categories = ['normal', 'DDOS', 'port_scan']
-num_datasets = 3  # Number of datasets per category
 
 # Ensure base directory exists
 if not os.path.exists(base_dir):
@@ -43,8 +42,18 @@ for category in categories:
     # Ensure category directory exists
     if not os.path.exists(category_dir):
         os.makedirs(category_dir)
-        
-    for i in range(1, num_datasets + 1):
+    
+    # Get the next available file index
+    existing_files = [f for f in os.listdir(category_dir) if f.startswith(category)]
+    if existing_files:
+        latest_file = max(existing_files, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+        next_index = int(latest_file.split('_')[-1].split('.')[0]) + 1
+    else:
+        next_index = 1
+
+    # Generate the number of datasets per category
+    num_datasets = 3
+    for i in range(next_index, next_index + num_datasets):
         if category == 'normal':
             data = generate_normal_traffic(1000)
         elif category == 'DDOS':
