@@ -2,9 +2,9 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
-from keras.models import Sequential
-from keras.layers import LSTM, Dense, Dropout
-from keras.utils import to_categorical
+from keras import Sequential
+from keras import LSTM, Dense, Dropout
+from keras import to_categorical
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
