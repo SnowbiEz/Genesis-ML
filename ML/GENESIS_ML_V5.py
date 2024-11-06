@@ -1,15 +1,14 @@
-import tensorflow as tf
+# import tensorflow as tf
 import pyshark
 import os
 import time
 
-print("TensorFlow version:", tf.__version__)
+# print("TensorFlow version:", tf.__version__)
 
 def process_packet(packet):
     print(f"Packet: {packet}")
 
-
-
+#Reads the test.cap file in intervals
 def monitor_pcap(file_path):
     cap = pyshark.FileCapture(file_path, keep_packets=False)
     cap.load_packets(timeout=5)  # Initial sniff to catch up with existing packets
@@ -28,6 +27,6 @@ def monitor_pcap(file_path):
 
 if __name__ == "__main__":
     # Set the full path to the pcap file
-    pcap_file = r'E:\Docs\CODEOUTPUTS\NEW\Python\genesisResearchProjectML\Genesis-ML\network_capture.pcap'
-    
+    pcap_file = r'E:\Docs\CODEOUTPUTS\NEW\Python\genesisResearchProjectTest\test.cap'
+
     monitor_pcap(pcap_file)

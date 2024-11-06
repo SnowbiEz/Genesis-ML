@@ -2,8 +2,9 @@ import pyshark
 import os
 import time
 
+
 def display_packet(packet):
-    print(f"Packet: {packet}")
+    print(f"Packet: {packet}".encode("utf-8"))
 
 def monitor_pcap(file_path):
     cap = pyshark.FileCapture(file_path, keep_packets=False)
@@ -21,3 +22,7 @@ def monitor_pcap(file_path):
             file_size = new_size
         time.sleep(1)
     
+if __name__ == "__main__":
+    pcap_file = r'E:\Docs\CODEOUTPUTS\NEW\Python\genesisResearchProjectTest\test.cap'
+
+    monitor_pcap(pcap_file)
