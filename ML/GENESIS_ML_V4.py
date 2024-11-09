@@ -5,9 +5,10 @@ import os
 import numpy as np
 import pandas as pd
 import tensorflow as tf
+import keras
 from keras import Sequential
-from keras import LSTM, Dense, Dropout
-from keras import to_categorical
+# from keras import LSTM, Dense, Dropout
+# from keras import to_categorical
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, confusion_matrix
@@ -17,7 +18,7 @@ import seaborn as sns
 # Constants
 BASE_DIR = 'ML'
 TEST_DIR = 'ML/test_set'
-CATEGORIES = ['normal', 'DDOS', 'port_scan', 'syn_flood', 'icmp_flood']  # Example of additional categories
+CATEGORIES = ['normal', 'DDOS', 'port_scan', 'syn_flood', 'icmp_flood', ]  # Example of additional categories
 label_encoder = LabelEncoder()
 label_encoder.fit(CATEGORIES)
 
@@ -34,9 +35,9 @@ def load_and_preprocess_data():
             features = data[['packet_size', 'request_rate']]  # Add other relevant features here
             all_data.append(features)
             all_labels.extend(labels)
-    X = pd.concat(all_data, ignore_index=True)
+    X = pd.concat(all_data, ignore_index=True)  
     y = label_encoder.transform(all_labels)
-    y_one_hot = to_categorical(y, num_classes=len(CATEGORIES))
+    y_one_hot = keras.utils.to_categorical(y, num_classes=len(CATEGORIES))
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     X_scaled = np.reshape(X_scaled, (X_scaled.shape[0], 1, X_scaled.shape[1]))  # For LSTM input
@@ -59,7 +60,7 @@ def load_combined_test_data(scaler):
     if test_data:
         X_test = pd.concat(test_data, ignore_index=True)
         y_test = label_encoder.transform(test_labels)
-        y_test_one_hot = to_categorical(y_test, num_classes=len(CATEGORIES))
+        y_test_one_hot = keras.utils.to_categorical(y_test, num_classes=len(CATEGORIES))
         X_test_scaled = scaler.transform(X_test)
         X_test_scaled = np.reshape(X_test_scaled, (X_test_scaled.shape[0], 1, X_test_scaled.shape[1]))  # For LSTM input
         return X_test_scaled, y_test_one_hot, y_test
@@ -70,11 +71,11 @@ def load_combined_test_data(scaler):
 # Define the LSTM model
 def create_model(input_shape, num_classes):
     model = Sequential([
-        LSTM(64, input_shape=input_shape, return_sequences=True),
-        Dropout(0.3),
-        LSTM(32, return_sequences=False),
-        Dropout(0.3),
-        Dense(num_classes, activation='softmax')
+        keras.layers.LSTM(64, input_shape=input_shape, return_sequences=True),
+        keras.layers.Dropout(0.3),
+        keras.layers.LSTM(32, return_sequences=False),
+        keras.layers.Dropout(0.3),
+        keras.layers.Dense(num_classes, activation='softmax')
     ])
     model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
     return model

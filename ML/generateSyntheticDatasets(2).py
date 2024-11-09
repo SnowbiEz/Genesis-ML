@@ -4,46 +4,56 @@ import random
 
 def generate_normal_traffic(num_samples):
     data = [{'packet_size': random.randint(64, 1500),
-             'request_rate': random.uniform(0.1, 10),
-             'source_ip': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}",
-             'destination_ip': "192.168.1.1",
-             'protocol_type': random.choice(["TCP", "UDP", "ICMP"])}
+             'request_rate': random.uniform(0.1, 5),  # Lower request rate
+             'ip.src': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}",
+             'ip.dst': "192.168.1.1",
+             '_ws.col.Protocol': random.choice(["TCP", "UDP", "ICMP"]),
+             'tcp.dstport': random.choice([80, 443, 8080]) if random.choice(["TCP", "UDP"]) == "TCP" else None,
+             'udp.dstport': 53 if random.choice(["TCP", "UDP"]) == "UDP" else None}
             for _ in range(num_samples)]
     return data
 
 def generate_ddos_traffic(num_samples, num_attackers):
-    data = [{'packet_size': random.randint(64, 1500),
+    data = [{'packet_size': random.randint(500, 1500),
              'request_rate': random.uniform(100, 1000),
-             'source_ip': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, num_attackers)}",
-             'destination_ip': "192.168.1.1",
-             'protocol_type': "TCP"}
+             'ip.src': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, num_attackers)}",
+             'ip.dst': "192.168.1.1",
+             '_ws.col.Protocol': "TCP",
+             'tcp.dstport': 80,  # Common target for DDoS
+             'udp.dstport': None}
             for _ in range(num_samples)]
     return data
 
 def generate_port_scan_traffic(num_samples):
     data = [{'packet_size': random.randint(40, 100),
              'request_rate': random.uniform(0.1, 1),
-             'source_ip': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}",
-             'destination_ip': "192.168.1.1",
-             'protocol_type': random.choice(["TCP", "UDP"])}
+             'ip.src': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}",
+             'ip.dst': "192.168.1.1",
+             '_ws.col.Protocol': random.choice(["TCP", "UDP"]),
+             'tcp.dstport': random.randint(20, 1024) if random.choice(["TCP", "UDP"]) == "TCP" else None,
+             'udp.dstport': random.randint(20, 1024) if random.choice(["TCP", "UDP"]) == "UDP" else None}
             for _ in range(num_samples)]
     return data
 
 def generate_syn_flood_traffic(num_samples, num_attackers):
-    data = [{'packet_size': random.randint(40, 100),
+    data = [{'packet_size': random.randint(40, 100),  # Typical SYN packet size
              'request_rate': random.uniform(100, 1000),
-             'source_ip': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, num_attackers)}",
-             'destination_ip': "192.168.1.1",
-             'protocol_type': "TCP"}
+             'ip.src': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, num_attackers)}",
+             'ip.dst': "192.168.1.1",
+             '_ws.col.Protocol': "TCP",
+             'tcp.dstport': 80,  # Targeting common web server port
+             'udp.dstport': None}
             for _ in range(num_samples)]
     return data
 
 def generate_icmp_flood_traffic(num_samples):
-    data = [{'packet_size': random.randint(40, 100),
+    data = [{'packet_size': random.randint(40, 100),  # Typical ICMP echo packet size
              'request_rate': random.uniform(100, 1000),
-             'source_ip': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}",
-             'destination_ip': "192.168.1.1",
-             'protocol_type': "ICMP"}
+             'ip.src': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}",
+             'ip.dst': "192.168.1.1",
+             '_ws.col.Protocol': "ICMP",
+             'tcp.dstport': None,
+             'udp.dstport': None}
             for _ in range(num_samples)]
     return data
 
