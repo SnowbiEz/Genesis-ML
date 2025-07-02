@@ -52,7 +52,7 @@ def load_combined_test_data(scaler):
         data = pd.read_csv(file_path)
         category = file_path.split('_')[0].split('/')[-1]
         labels = np.array([category] * len(data))
-        features = data[['packet_size', 'equest_rate']]  # Add other relevant features here
+        features = data[['packet_size', 'request_rate']]  # Add other relevant features here
         test_data.append(features)
         test_labels.extend(labels)
     

@@ -1,72 +1,85 @@
 import os
 import pandas as pd
 import random
-from datetime import datetime, timedelta
 
-# Helper function to calculate request rates based on timestamps
-def calculate_request_rate(data):
-    data.sort(key=lambda x: (x['source_ip'], x['timestamp']))
-    current_ip = None
-    interval_start = None
-    request_count = 0
-    for i in range(len(data)):
-        if data[i]['source_ip'] != current_ip:
-            current_ip = data[i]['source_ip']
-            interval_start = data[i]['timestamp']
-            request_count = 1
-        else:
-            interval_duration = (data[i]['timestamp'] - interval_start).total_seconds()
-            if interval_duration > 0:
-                data[i]['request_rate'] = request_count / interval_duration
-            request_count += 1
+def generate_normal_traffic(num_samples):
+    data = [{'packet_size': random.randint(64, 1500),
+             'request_rate': random.randint(1, 5),  # Lower request rate as integer
+             'ip.src': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}",
+             'ip.dst': "192.168.1.1",
+             '_ws.col.protocol': random.choice(["TCP", "UDP", "ICMP"]),
+             'tcp.dstport': random.choice([80, 443, 8080]) if random.choice(["TCP", "UDP"]) == "TCP" else None,
+             'udp.dstport': 53 if random.choice(["TCP", "UDP"]) == "UDP" else None}
+            for _ in range(num_samples)]
     return data
 
-# Updated function to generate synthetic data with timestamps
-def generate_synthetic_data(num_samples, packet_size_range, request_rate_range, num_attackers=None):
-    data = []
-    for _ in range(num_samples):
-        timestamp = datetime.now() + timedelta(seconds=random.uniform(0, num_samples))
-        data.append({
-            'packet_size': random.randint(*packet_size_range),
-            'source_ip': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, num_attackers or 255)}",
-            'destination_ip': "192.168.1.1",        
-            'protocol_type': random.choice(["TCP", "UDP", "ICMP"]),
-            'timestamp': timestamp
-        })
-    return calculate_request_rate(data)
-
-# Functions for different categories
-def generate_normal_traffic(num_samples):
-    return generate_synthetic_data(num_samples, (64, 1500), (0.1, 10))
-
 def generate_ddos_traffic(num_samples, num_attackers):
-    return generate_synthetic_data(num_samples, (64, 1500), (100, 1000), num_attackers)
+    data = [{'packet_size': random.randint(500, 1500),
+             'request_rate': random.randint(100, 1000),  # Request rate as integer
+             'ip.src': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, num_attackers)}",
+             'ip.dst': "192.168.1.1",
+             '_ws.col.protocol': "TCP",
+             'tcp.dstport': 80,  # Common target for DDoS
+             'udp.dstport': None}
+            for _ in range(num_samples)]
+    return data
 
 def generate_port_scan_traffic(num_samples):
-    return generate_synthetic_data(num_samples, (40, 100), (0.1, 1))
+    data = [{'packet_size': random.randint(40, 100),
+             'request_rate': random.randint(1, 10),  # Request rate as integer
+             'ip.src': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}",
+             'ip.dst': "192.168.1.1",
+             '_ws.col.protocol': random.choice(["TCP", "UDP"]),
+             'tcp.dstport': random.randint(20, 1024) if random.choice(["TCP", "UDP"]) == "TCP" else None,
+             'udp.dstport': random.randint(20, 1024) if random.choice(["TCP", "UDP"]) == "UDP" else None}
+            for _ in range(num_samples)]
+    return data
 
 def generate_syn_flood_traffic(num_samples, num_attackers):
-    return generate_synthetic_data(num_samples, (40, 100), (100, 1000), num_attackers)
+    data = [{'packet_size': random.randint(40, 100),  # Typical SYN packet size
+             'request_rate': random.randint(100, 1000),  # Request rate as integer
+             'ip.src': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, num_attackers)}",
+             'ip.dst': "192.168.1.1",
+             '_ws.col.protocol': "TCP",
+             'tcp.dstport': 80,  # Targeting common web server port
+             'udp.dstport': None}
+            for _ in range(num_samples)]
+    return data
 
 def generate_icmp_flood_traffic(num_samples):
-    return generate_synthetic_data(num_samples, (40, 100), (100, 1000))
+    data = [{'packet_size': random.randint(40, 100),  # Typical ICMP echo packet size
+             'request_rate': random.randint(100, 1000),  # Request rate as integer
+             'ip.src': f"{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}.{random.randint(1, 255)}",
+             'ip.dst': "192.168.1.1",
+             '_ws.col.protocol': "ICMP",
+             'tcp.dstport': None,
+             'udp.dstport': None}
+            for _ in range(num_samples)]
+    return data
 
-# Directory setup
+# Set base directory to your ML folder
 base_dir = 'ML'
 categories = ['normal', 'DDOS', 'port_scan', 'syn_flood', 'icmp_flood']
 
+# Ensure base directory exists
 if not os.path.exists(base_dir):
     os.makedirs(base_dir)
 
 for category in categories:
     category_dir = os.path.join(base_dir, category)
+    # Ensure category directory exists
     if not os.path.exists(category_dir):
         os.makedirs(category_dir)
     
-    # Next file index and data generation
+    # Get the next available file index
     existing_files = [f for f in os.listdir(category_dir) if f.startswith(category)]
-    next_index = int(max([f.split('_')[-1].split('.')[0] for f in existing_files], default=0)) + 1
+    if existing_files:
+        latest_file = max(existing_files, key=lambda x: int(x.split('_')[-1].split('.')[0]))
+        next_index = int(latest_file.split('_')[-1].split('.')[0]) + 1
+    else:
+        next_index = 1
 
+    # Generate the number of datasets per category
     num_datasets = 3
     for i in range(next_index, next_index + num_datasets):
         if category == 'normal':
@@ -80,8 +93,8 @@ for category in categories:
         elif category == 'icmp_flood':
             data = generate_icmp_flood_traffic(200)
         
-        df = pd.DataFrame(data).drop(columns='timestamp')
+        df = pd.DataFrame(data)
         filename = os.path.join(category_dir, f"{category}_dataset_{i}.csv")
         df.to_csv(filename, index=False)
 
-print("Datasets with time-based request rates generated and stored.")
+print("Datasets generated and stored.")

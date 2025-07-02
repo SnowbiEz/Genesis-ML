@@ -66,8 +66,8 @@ def preprocess_test_data(test_file, scaler):
         raise ValueError("The 'packet_size' column is missing from the test data.")
     
     # Calculate request rate using packet timestamps if 'frame.time' is present
-    if 'frame.time' in data.columns:
-        data['timestamp'] = pd.to_datetime(data['frame.time'])
+    if 'frame.time_epoch' in data.columns:
+        data['timestamp'] = pd.to_datetime(data['frame.time_epoch'])
         data.sort_values(by='timestamp', inplace=True)
         
         # Compute the time difference between consecutive packets to estimate request rate
@@ -103,7 +103,7 @@ model = create_model((X_train.shape[1], X_train.shape[2]), len(CATEGORIES))
 history = model.fit(X_train, y_train, epochs=50, validation_split=0.3)
 
 # Use the trained model to predict the type of traffic in the real-world dataset (test set)
-real_world_test_file = os.path.join(TEST_DIR, 'test_data.csv')  # Update with the actual test data file
+real_world_test_file = os.path.join(TEST_DIR, 'data.csv')  # Update with the actual test data file
 X_test_scaled = preprocess_test_data(real_world_test_file, scaler)
 
 # Predict the categories for the real-world test data

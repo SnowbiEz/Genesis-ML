@@ -4,5 +4,7 @@
         "scrollbar.shadow": "#00000000"
     },
     "terminal.integrated.defaultProfile.windows": "PowerShell",
-    "terminal.integrated.suggest.enabled": false
+    "terminal.integrated.suggest.enabled": false,
+    "terminal.integrated.smoothScrolling": true,
+    "editor.smoothScrolling": true
 }

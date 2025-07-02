@@ -4,7 +4,6 @@ import pandas as pd
 import keras
 from keras import Sequential
 from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.metrics import classification_report, confusion_matrix
 import matplotlib.pyplot as plt
 
 # Constants
@@ -15,7 +14,6 @@ label_encoder = LabelEncoder()
 label_encoder.fit(CATEGORIES)
 
 # Load and preprocess training data
-# Load and preprocess training data without calculating request rate
 def load_and_preprocess_data():
     all_data = []
     all_labels = []
@@ -25,34 +23,41 @@ def load_and_preprocess_data():
         for file_path in files:
             data = pd.read_csv(file_path)
             
-            # Extract relevant features directly from the dataset
+            # Check for required columns
             if 'packet_size' not in data.columns or 'request_rate' not in data.columns:
                 raise ValueError(f"Required columns are missing in the file {file_path}")
             else:
-                features = data[['packet_size', 'request_rate']]
+                # Extract features
+                features = data[['packet_size', 'request_rate', '_ws.col.protocol']]
                 labels = np.array([category] * len(data))
                 all_data.append(features)
                 all_labels.extend(labels)
-    
+
     # Combine data and labels
     X = pd.concat(all_data, ignore_index=True)
     y = label_encoder.transform(all_labels)
     y_one_hot = keras.utils.to_categorical(y, num_classes=len(CATEGORIES))
+    
+    # Convert categorical features to numeric using one-hot encoding
+    X = pd.get_dummies(X, columns=['_ws.col.Protocol'], drop_first=True)
     
     # Standardize the features
     scaler = StandardScaler()
     X_scaled = scaler.fit_transform(X)
     X_scaled = np.reshape(X_scaled, (X_scaled.shape[0], 1, X_scaled.shape[1]))  # Reshape for LSTM input
     
-    return X_scaled, y_one_hot, scaler
+    return X_scaled, y_one_hot, scaler, X.columns.tolist()  # Return expected columns
 
 # Preprocess the unlabeled real-world traffic data (test set)
-def preprocess_test_data(test_file, scaler):
+def preprocess_test_data(test_file, scaler, expected_columns):
     # Load the test data
     data = pd.read_csv(test_file)
     
+    # Strip whitespace from column names
+    data.columns = data.columns.str.strip()
+    
     # Rename columns
-    data = data.rename(columns={'frame.time_epoch': 'timestamp', 'frame.len': 'packet_size', '_ws.col.protocol': 'protocol'})
+    data = data.rename(columns={'frame.time_epoch': 'timestamp', 'frame.len': 'packet_size'})
     
     # Verify that required columns are present
     if 'packet_size' not in data.columns:
@@ -67,7 +72,7 @@ def preprocess_test_data(test_file, scaler):
     # Calculate request rate: total count of packets per second for each IP
     data.set_index('timestamp', inplace=True)
     request_rate = data.groupby('ip.src').resample('1s').size().reset_index(name='request_rate')
-    request_rate['timestamp'] = request_rate['timestamp'].dt.floor('S')  # Ensure timestamp is floored to the second
+    request_rate['timestamp'] = request_rate['timestamp'].dt.floor('S')
 
     # Merge the request rate back to the original data
     data = data.reset_index().merge(request_rate, on=['ip.src', 'timestamp'], how='left').fillna(0)
@@ -75,8 +80,15 @@ def preprocess_test_data(test_file, scaler):
     # Reset index after resampling
     data.reset_index(drop=True, inplace=True)
     
-    # Extract features and scale them
-    features = data[['packet_size', 'request_rate']]
+    # Extract features, note: remove dstport and protocol to reduce overfitting edge case
+    features = data[['packet_size', 'request_rate', '_ws.col.protocol']]
+    
+    # Convert categorical features to numeric using one-hot encoding
+    features = pd.get_dummies(features, columns=['_ws.col.protocol'], drop_first=True)
+    
+    # Align columns with the training data
+    features = features.reindex(columns=expected_columns, fill_value=0)
+    
     features_scaled = scaler.transform(features)
     features_scaled = np.reshape(features_scaled, (features_scaled.shape[0], 1, features_scaled.shape[1]))  # Reshape for LSTM input
     
@@ -95,23 +107,13 @@ def create_model(input_shape, num_classes):
     return model
 
 # Training and validation
-X_train, y_train, scaler = load_and_preprocess_data()
+X_train, y_train, scaler, expected_columns = load_and_preprocess_data()
 model = create_model((X_train.shape[1], X_train.shape[2]), len(CATEGORIES))
-history = model.fit(X_train, y_train, epochs=500, validation_split=0.3)
-
-plt.figure(figsize=(10, 6))
-plt.plot(history.history['accuracy'], label='Training Accuracy')
-plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
-plt.title('Model Accuracy')
-plt.xlabel('Epoch')
-plt.ylabel('Accuracy')
-plt.legend()
-plt.grid(True)
-plt.show()
+history = model.fit(X_train, y_train, epochs=50, validation_split=0.3)
 
 # Use the trained model to predict the type of traffic in the real-world dataset (test set)
 real_world_test_file = os.path.join(TEST_DIR, 'data.csv')
-X_test_scaled = preprocess_test_data(real_world_test_file, scaler)
+X_test_scaled = preprocess_test_data(real_world_test_file, scaler, expected_columns)
 
 # Predict the categories for the real-world test data
 y_pred = model.predict(X_test_scaled)
@@ -125,17 +127,4 @@ for idx, label in enumerate(predicted_labels):
 
 # Visualize traffic distribution by category
 traffic_counts = pd.Series(predicted_labels).value_counts()
-traffic_counts.plot(kind='bar', title='Traffic Distribution')
-
-# for idx, label in enumerate(predicted_labels):  
-#     print(f"Packet {idx + 1}: Predicted Category: {label}")
-
-traffic_counts = pd.Series(predicted_labels).value_counts()
 print(traffic_counts)
-
-plt.ylabel('Count of Packets')
-plt.xlabel('Traffic Category')
-plt.show()
-
-# Save the trained model if needed
-# model.save('path_to_save_model.h5')
